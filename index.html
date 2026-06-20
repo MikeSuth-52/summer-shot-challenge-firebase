@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>10,000 Shot Challenge</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #ffffff; color: #1a1f2b; min-height: 100vh; }
+  .hero { background: #ffffff; padding: 2rem 1.5rem 1.75rem; text-align: center; border-bottom: 1px solid #e3e6ec; }
+  .season-label { font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: #cc2233; margin-bottom: 0.5rem; }
+  .hero h1 { font-size: clamp(1.6rem, 5vw, 2.4rem); font-weight: 700; color: #0b1120; line-height: 1.1; margin-bottom: 0.25rem; }
+  .hero-sub { font-size: 14px; color: #5a6478; margin-bottom: 1.5rem; }
+
+  .hero-grid { display: grid; grid-template-columns: 1fr 1.1fr; gap: 1.25rem; text-align: left; max-width: 900px; margin: 0 auto; }
+  @media (max-width: 700px) { .hero-grid { grid-template-columns: 1fr; } }
+
+  .hero-total-card { background: #0b1120; border-radius: 14px; padding: 1.5rem; color: #fff; display: flex; flex-direction: column; justify-content: center; }
+  .hero-total-label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #9fb0c9; margin-bottom: 0.4rem; text-align: center; }
+  .hero-total-num { font-size: clamp(2.4rem, 8vw, 3.4rem); font-weight: 800; color: #fff; text-align: center; line-height: 1; margin-bottom: 1rem; }
+
+  .hero-top10-card { background: #f7f8fa; border: 1px solid #e3e6ec; border-radius: 14px; padding: 1.25rem 1.25rem 0.5rem; }
+  .hero-top10-label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #5a6478; margin-bottom: 0.75rem; font-weight: 700; }
+  .top10-row { display: grid; grid-template-columns: 26px 1fr auto; gap: 0.5rem; align-items: center; padding: 0.45rem 0; border-bottom: 1px solid #e8eaef; font-size: 13.5px; }
+  .top10-row:last-child { border-bottom: none; }
+  .top10-rank { font-weight: 700; color: #8a93a3; font-size: 12.5px; }
+  .top10-rank.top3 { color: #c89400; }
+  .top10-name { font-weight: 600; color: #1a1f2b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .top10-div { font-size: 10.5px; color: #8a93a3; margin-left: 5px; }
+  .top10-shots { font-weight: 700; color: #cc2233; white-space: nowrap; font-size: 13.5px; }
+  .top10-empty { color: #8a93a3; font-size: 13px; padding: 0.75rem 0; text-align: center; }
+
+  .stat-row { display: flex; justify-content: center; gap: 1.75rem; }
+  .stat-item { text-align: center; }
+  .stat-num { font-size: 1.15rem; font-weight: 700; color: #fff; }
+  .stat-label { font-size: 10px; color: #9fb0c9; text-transform: uppercase; letter-spacing: 0.07em; }
+
+  .tabs { display: flex; background: #f7f8fa; border-bottom: 1px solid #e3e6ec; }
+  .tab { flex: 1; padding: 0.85rem 0.5rem; text-align: center; font-size: 13px; font-weight: 600; color: #8a93a3; cursor: pointer; letter-spacing: 0.05em; text-transform: uppercase; border-bottom: 3px solid transparent; transition: color 0.15s, border-color 0.15s; background: none; border-top: none; border-left: none; border-right: none; user-select: none; }
+  .tab.active { color: #cc2233; border-bottom-color: #cc2233; }
+  .panel { display: none; padding: 1.5rem; }
+  .panel.active { display: block; }
+  .form-group { margin-bottom: 1rem; }
+  label { display: block; font-size: 12px; font-weight: 600; color: #5a6478; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.4rem; }
+  .hint { font-size: 12px; color: #8a93a3; margin-top: 0.35rem; line-height: 1.4; }
+  input[type="text"], input[type="number"], input[type="password"], input[type="tel"], select {
+    width: 100%; padding: 0.65rem 0.85rem; background: #fff; border: 1px solid #d5d9e0;
+    border-radius: 8px; color: #1a1f2b; font-size: 15px; outline: none; transition: border-color 0.15s; -webkit-appearance: none;
+  }
+  input:focus, select:focus { border-color: #cc2233; }
+  input[readonly] { color: #8a93a3; cursor: default; background: #f7f8fa; border-color: #e3e6ec; }
+  select option { background: #fff; }
+  .submit-btn { width: 100%; padding: 0.8rem; background: #cc2233; color: #fff; font-size: 15px; font-weight: 700; border: none; border-radius: 8px; cursor: pointer; letter-spacing: 0.03em; transition: background 0.15s, transform 0.1s; margin-top: 0.5rem; }
+  .submit-btn:hover { background: #a81b29; }
+  .submit-btn:active { transform: scale(0.98); }
+  .submit-btn:disabled { background: #e3e6ec; color: #aab2c0; cursor: not-allowed; }
+  .btn-secondary { background: #eef0f4; color: #4a5468; }
+  .btn-secondary:hover { background: #dde1e9; }
+  .toast { display: none; background: #e9f9ee; border: 1px solid #b8e8c4; color: #1f7a3a; border-radius: 8px; padding: 0.75rem 1rem; font-size: 14px; margin-top: 0.75rem; text-align: center; }
+  .toast.show { display: block; }
+  .toast.err { background: #fdeaea; border-color: #f3bcbc; color: #b3261e; }
+  .error-msg { color: #d33; font-size: 12px; margin-top: 0.3rem; display: none; }
+  .lb-header { display: grid; grid-template-columns: 36px 1fr auto; gap: 0.5rem; padding: 0 0.5rem 0.5rem; font-size: 11px; color: #8a93a3; text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid #e3e6ec; margin-bottom: 0.5rem; }
+  .lb-row { display: grid; grid-template-columns: 36px 1fr auto; gap: 0.5rem; align-items: center; padding: 0.6rem 0.5rem; border-radius: 8px; transition: background 0.1s; }
+  .lb-row:hover { background: #f7f8fa; }
+  .lb-rank { font-size: 13px; font-weight: 700; color: #8a93a3; text-align: center; }
+  .lb-rank.top3 { color: #c89400; }
+  .lb-name-wrap { min-width: 0; }
+  .lb-name { font-size: 14px; font-weight: 600; color: #1a1f2b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lb-team { font-size: 11px; color: #8a93a3; }
+  .lb-shots { font-size: 15px; font-weight: 700; color: #cc2233; white-space: nowrap; }
+  .lb-bar-wrap { grid-column: 2 / 4; height: 3px; background: #e3e6ec; border-radius: 2px; margin-top: -4px; margin-bottom: 2px; }
+  .lb-bar { height: 100%; background: #cc2233; border-radius: 2px; }
+  .lb-empty { text-align: center; color: #8a93a3; font-size: 14px; padding: 2rem 0; }
+  .search-wrap { margin-bottom: 1rem; }
+  .admin-section { background: #f7f8fa; border: 1px solid #e3e6ec; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+  .admin-section h3 { font-size: 13px; font-weight: 600; color: #5a6478; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.75rem; }
+  .admin-row { display: flex; gap: 0.5rem; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #e8eaef; font-size: 13px; flex-wrap: wrap; }
+  .admin-row:last-child { border-bottom: none; }
+  .admin-info { flex: 1; min-width: 120px; color: #1a1f2b; line-height: 1.5; }
+  .admin-info small { color: #8a93a3; display: block; font-size: 11px; }
+  .admin-actions { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
+  .edit-shots-wrap { display: flex; align-items: center; gap: 0.3rem; }
+  .edit-shots-input { width: 72px; padding: 0.25rem 0.4rem; font-size: 13px; background: #fff; border: 1px solid #d5d9e0; border-radius: 6px; color: #cc2233; font-weight: 700; text-align: center; }
+  .save-btn { background: #e9f9ee; border: 1px solid #b8e8c4; color: #1f7a3a; border-radius: 6px; padding: 0.25rem 0.5rem; cursor: pointer; font-size: 12px; white-space: nowrap; }
+  .save-btn:hover { background: #d3f0db; }
+  .del-btn { background: none; border: 1px solid #f3bcbc; color: #b3261e; border-radius: 6px; padding: 0.25rem 0.5rem; cursor: pointer; font-size: 12px; white-space: nowrap; }
+  .del-btn:hover { background: #fdeaea; }
+  .reset-btn { background: none; border: 1px solid #f0d9a0; color: #9a6a00; border-radius: 6px; padding: 0.25rem 0.5rem; cursor: pointer; font-size: 12px; white-space: nowrap; }
+  .reset-btn:hover { background: #fcf2da; }
+  .admin-lock { text-align: center; color: #5a6478; font-size: 14px; padding: 1rem 0; }
+  .div-badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; background: #eef0f4; color: #5a6478; letter-spacing: 0.05em; text-transform: uppercase; margin-left: 6px; vertical-align: middle; }
+  .pin-badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; background: #fdeaea; color: #b3261e; letter-spacing: 0.05em; margin-left: 6px; vertical-align: middle; }
+  .pin-badge.set { background: #e9f9ee; color: #1f7a3a; }
+  .add-player-form { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
+  .add-player-form input { flex: 1; min-width: 100px; }
+  .add-player-form button { width: auto; padding: 0.65rem 1rem; margin-top: 0; }
+  .empty-note { color: #8a93a3; font-size: 13px; padding: 0.5rem 0; }
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(11,17,32,0.5); align-items: center; justify-content: center; z-index: 1000; padding: 1.5rem; }
+  .modal-overlay.show { display: flex; }
+  .modal-box { background: #fff; border-radius: 12px; padding: 1.5rem; max-width: 360px; width: 100%; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
+  .modal-msg { font-size: 14.5px; color: #1a1f2b; line-height: 1.5; margin-bottom: 1.25rem; }
+  .modal-actions { display: flex; gap: 0.6rem; }
+  .modal-actions button { flex: 1; padding: 0.6rem; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; border: none; }
+  .modal-cancel { background: #eef0f4; color: #4a5468; }
+  .modal-cancel:hover { background: #dde1e9; }
+  .modal-confirm { background: #cc2233; color: #fff; }
+  .modal-confirm:hover { background: #a81b29; }
+  @media (max-width: 480px) { .stat-row { gap: 1.1rem; } .stat-num { font-size: 1rem; } }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="season-label">Summer 2026 Challenge</div>
+  <h1>10,000-Shot Challenge</h1>
+  <p class="hero-sub">Every rep counts. Keep shooting.</p>
+
+  <div class="hero-grid">
+    <div class="hero-total-card">
+      <div class="hero-total-label">Total Shots</div>
+      <div class="hero-total-num" id="totalShotsNum">0</div>
+      <div class="stat-row">
+        <div class="stat-item"><div class="stat-num" id="statPlayers">0</div><div class="stat-label">Players</div></div>
+        <div class="stat-item"><div class="stat-num" id="statSubmissions">0</div><div class="stat-label">Submissions</div></div>
+        <div class="stat-item"><div class="stat-num" id="statAvg">—</div><div class="stat-label">Avg / Player</div></div>
+      </div>
+    </div>
+
+    <div class="hero-top10-card">
+      <div class="hero-top10-label">Top 10 Leaders</div>
+      <div id="top10List"></div>
+    </div>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('submit',this)">Log Shots</button>
+  <button class="tab" onclick="switchTab('leaderboard',this)">Leaderboard</button>
+  <button class="tab" onclick="switchTab('admin',this)">Admin</button>
+</div>
+
+<div id="panel-submit" class="panel active">
+  <div class="form-group">
+    <label for="playerSelect">Player</label>
+    <select id="playerSelect" onchange="onPlayerSelect()">
+      <option value="">— Select player —</option>
+    </select>
+    <div class="error-msg" id="nameErr">Please select a player.</div>
+  </div>
+  <div class="form-group">
+    <label for="divisionDisplay">Division</label>
+    <input type="text" id="divisionDisplay" readonly placeholder="Auto-filled when player is selected"/>
+  </div>
+  <div class="form-group" id="pinGroup" style="display:none;">
+    <label for="pinInput" id="pinLabel">PIN</label>
+    <input type="tel" id="pinInput" maxlength="6" placeholder="4-digit PIN" inputmode="numeric"/>
+    <div class="hint" id="pinHint"></div>
+    <div class="error-msg" id="pinErr">Incorrect PIN for this player.</div>
+  </div>
+  <div class="form-group">
+    <label for="shotCount">Shots since last submission</label>
+    <input type="number" id="shotCount" placeholder="e.g. 250" min="1" max="2000"/>
+    <div class="error-msg" id="shotErr">Please enter a number between 1 and 2000.</div>
+  </div>
+  <button class="submit-btn" id="submitBtn" onclick="submitShots()">Log shots</button>
+  <div class="toast" id="toast"></div>
+</div>
+
+<div id="panel-leaderboard" class="panel">
+  <div class="search-wrap">
+    <input type="text" id="searchInput" placeholder="Search players or divisions..." oninput="renderLeaderboard()"/>
+  </div>
+  <div class="lb-header"><span>#</span><span>Player</span><span>Shots</span></div>
+  <div id="lbList"></div>
+</div>
+
+<div id="panel-admin" class="panel">
+  <div id="adminLock">
+    <div class="admin-lock">Sign in with your admin account to manage players and entries.</div>
+    <div class="form-group" style="margin-top:1rem;">
+      <label for="adminEmail">Email</label>
+      <input type="text" id="adminEmail" placeholder="admin@example.com" autocomplete="username" onkeydown="if(event.key==='Enter')adminLogin()"/>
+    </div>
+    <div class="form-group">
+      <label for="adminPw">Password</label>
+      <input type="password" id="adminPw" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')adminLogin()"/>
+    </div>
+    <button class="submit-btn" onclick="adminLogin()">Sign in</button>
+    <div class="error-msg" id="adminErr" style="display:block;text-align:center;margin-top:0.5rem;"></div>
+  </div>
+  <div id="adminPanel" style="display:none;">
+    <div class="admin-section">
+      <h3>Roster</h3>
+      <div class="add-player-form">
+        <input type="text" id="newPlayerName" placeholder="Player name"/>
+        <input type="text" id="newPlayerDivision" placeholder="Division (e.g. 10U)"/>
+        <button class="submit-btn" onclick="addPlayer()">Add</button>
+      </div>
+      <div id="rosterList"></div>
+    </div>
+    <div class="admin-section">
+      <h3>Upload CSV</h3>
+      <p class="hint" style="margin-top:0;margin-bottom:0.75rem;">
+        Bulk-add players to the roster. File needs two columns: <strong>name</strong> and <strong>division</strong>
+        (header row optional, e.g. <code>name,division</code>). Existing names are skipped.
+      </p>
+      <input type="file" id="csvFileInput" accept=".csv,text/csv"/>
+      <button class="submit-btn" onclick="handleCsvUpload()" style="margin-top:0.6rem;">Upload roster CSV</button>
+      <div id="csvSummary" class="hint" style="margin-top:0.75rem;"></div>
+    </div>
+    <div class="admin-section">
+      <h3>All submissions</h3>
+      <div id="adminList"></div>
+    </div>
+    <button class="submit-btn btn-secondary" onclick="adminLogout()">Sign out</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="confirmOverlay">
+  <div class="modal-box">
+    <div class="modal-msg" id="confirmMsg"></div>
+    <div class="modal-actions">
+      <button class="modal-cancel" id="confirmCancelBtn">Cancel</button>
+      <button class="modal-confirm" id="confirmOkBtn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+  import {
+    getFirestore, collection, doc, getDocs, getDoc, setDoc, addDoc, updateDoc, deleteDoc, query
+  } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+  import {
+    getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
+  } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBfnD0SPnYFFjOcOefc13aEzIv6AsheDuo",
+    authDomain: "summer-shot-challenge-2026.firebaseapp.com",
+    projectId: "summer-shot-challenge-2026",
+    storageBucket: "summer-shot-challenge-2026.firebasestorage.app",
+    messagingSenderId: "223190569251",
+    appId: "1:223190569251:web:b4453748408344b3e63c96"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+
+  // Expose what the main (non-module) script needs via a global namespace,
+  // since <script type="module"> has its own scope and the rest of the app
+  // is a plain classic script for simplicity.
+  window.fb = {
+    db, auth,
+    collection, doc, getDocs, getDoc, setDoc, addDoc, updateDoc, deleteDoc, query,
+    signInWithEmailAndPassword, signOut, onAuthStateChanged
+  };
+  window.fbReady = true;
+  window.dispatchEvent(new Event('firebase-ready'));
+</script>
+
+<script>
+// Player PINs are stored as SHA-256 hashes in Firestore (field: pinHash),
+// never as plaintext, so the database itself never holds a readable PIN.
+// Admin access is handled by real Firebase Authentication (see adminLogin
+// below) rather than a password baked into this file.
+
+let entries = [];      // [{ id, name, division, shots, ts }]
+let roster = [];        // [{ id, name, division, pinHash }]
+let adminAuthed = false;
+
+function waitForFirebase() {
+  return new Promise(resolve => {
+    if (window.fbReady) return resolve();
+    window.addEventListener('firebase-ready', () => resolve(), { once: true });
+  });
+}
+
+async function loadData() {
+  await waitForFirebase();
+  const { db, collection, getDocs } = window.fb;
+
+  entries = [];
+  roster = [];
+
+  try {
+    const snap = await getDocs(collection(db, 'players'));
+    roster = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch(e) {
+    console.error('Could not load roster from Firestore.', e);
+    showToast('Could not load the roster — check your connection and refresh.', true);
+  }
+
+  try {
+    const snap = await getDocs(collection(db, 'entries'));
+    entries = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    entries.sort((a, b) => (a.ts || 0) - (b.ts || 0));
+  } catch(e) {
+    console.error('Could not load entries from Firestore.', e);
+    showToast('Could not load shot history — check your connection and refresh.', true);
+  }
+
+  buildDropdown();
+  updateAll();
+}
+
+// Add a brand-new player document. Returns the new Firestore doc id, or null on failure.
+async function addPlayerDoc(name, division) {
+  const { db, collection, addDoc } = window.fb;
+  try {
+    const ref = await addDoc(collection(db, 'players'), { name, division, pinHash: null });
+    return ref.id;
+  } catch(e) {
+    console.error('addPlayerDoc failed', e);
+    return null;
+  }
+}
+
+// Update an existing player doc (used for setting pinHash, or admin edits).
+async function updatePlayerDoc(id, fields) {
+  const { db, doc, updateDoc } = window.fb;
+  try {
+    await updateDoc(doc(db, 'players', id), fields);
+    return true;
+  } catch(e) {
+    console.error('updatePlayerDoc failed', e);
+    return false;
+  }
+}
+
+async function deletePlayerDoc(id) {
+  const { db, doc, deleteDoc } = window.fb;
+  try {
+    await deleteDoc(doc(db, 'players', id));
+    return true;
+  } catch(e) {
+    console.error('deletePlayerDoc failed', e);
+    return false;
+  }
+}
+
+// Add a new shot entry. Returns the new doc id, or null on failure.
+async function addEntryDoc(entry) {
+  const { db, collection, addDoc } = window.fb;
+  try {
+    const ref = await addDoc(collection(db, 'entries'), entry);
+    return ref.id;
+  } catch(e) {
+    console.error('addEntryDoc failed', e);
+    return null;
+  }
+}
+
+async function updateEntryDoc(id, fields) {
+  const { db, doc, updateDoc } = window.fb;
+  try {
+    await updateDoc(doc(db, 'entries', id), fields);
+    return true;
+  } catch(e) {
+    console.error('updateEntryDoc failed', e);
+    return false;
+  }
+}
+
+async function deleteEntryDoc(id) {
+  const { db, doc, deleteDoc } = window.fb;
+  try {
+    await deleteDoc(doc(db, 'entries', id));
+    return true;
+  } catch(e) {
+    console.error('deleteEntryDoc failed', e);
+    return false;
+  }
+}
+
+function findPlayer(name) {
+  return roster.find(p => p.name === name);
+}
+
+function buildDropdown() {
+  const sel = document.getElementById('playerSelect');
+  sel.innerHTML = '<option value="">— Select player —</option>';
+  const divisions = [...new Set(roster.map(p => p.division))].sort();
+  divisions.forEach(div => {
+    const grp = document.createElement('optgroup');
+    grp.label = div;
+    roster.filter(p => p.division === div)
+      .sort((a,b) => a.name.localeCompare(b.name))
+      .forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.name;
+        opt.textContent = p.name;
+        grp.appendChild(opt);
+      });
+    sel.appendChild(grp);
+  });
+}
+
+function onPlayerSelect() {
+  const name = document.getElementById('playerSelect').value;
+  const player = findPlayer(name);
+  const pinGroup = document.getElementById('pinGroup');
+  const pinLabel = document.getElementById('pinLabel');
+  const pinHint = document.getElementById('pinHint');
+  const pinInput = document.getElementById('pinInput');
+
+  document.getElementById('divisionDisplay').value = player ? player.division : '';
+  pinInput.value = '';
+  document.getElementById('pinErr').style.display = 'none';
+
+  if (!player) {
+    pinGroup.style.display = 'none';
+    return;
+  }
+
+  pinGroup.style.display = 'block';
+  if (player.pinHash) {
+    pinLabel.textContent = 'PIN';
+    pinHint.textContent = 'Enter your PIN to confirm this is you.';
+  } else {
+    pinLabel.textContent = 'Create a PIN';
+    pinHint.textContent = 'First time logging shots — pick a 4-digit PIN. You\'ll use this same PIN every time.';
+  }
+}
+
+function getTotals() {
+  const map = {};
+  for (const p of roster) map[p.name] = { name: p.name, division: p.division, shots: 0 };
+  for (const e of entries) {
+    if (!map[e.name]) map[e.name] = { name: e.name, division: e.division || '', shots: 0 };
+    map[e.name].shots += e.shots;
+  }
+  return Object.values(map).sort((a,b) => b.shots - a.shots);
+}
+
+function getTotal() { return entries.reduce((s,e) => s + e.shots, 0); }
+
+function updateTotalDisplay(total) {
+  document.getElementById('totalShotsNum').textContent = total.toLocaleString();
+}
+
+function updateStats(total, totals) {
+  const playersWithShots = totals.filter(t => t.shots > 0).length;
+  document.getElementById('statPlayers').textContent = roster.length;
+  document.getElementById('statSubmissions').textContent = entries.length;
+  document.getElementById('statAvg').textContent = playersWithShots ? Math.round(total / playersWithShots).toLocaleString() : '—';
+}
+
+function renderTop10(totals) {
+  const el = document.getElementById('top10List');
+  const top = totals.slice(0, 10).filter(p => p.shots > 0);
+  if (!top.length) {
+    el.innerHTML = '<div class="top10-empty">No shots logged yet.</div>';
+    return;
+  }
+  el.innerHTML = top.map((p, i) => {
+    const rank = i + 1;
+    return `<div class="top10-row">
+      <div class="top10-rank ${rank<=3?'top3':''}">${rank}</div>
+      <div class="top10-name">${esc(p.name)}${p.division ? `<span class="top10-div">${esc(p.division)}</span>` : ''}</div>
+      <div class="top10-shots">${p.shots.toLocaleString()}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderLeaderboard() {
+  const q = (document.getElementById('searchInput').value || '').toLowerCase();
+  const active = getTotals().filter(t => t.shots > 0);
+  const filtered = q ? active.filter(t => t.name.toLowerCase().includes(q) || (t.division||'').toLowerCase().includes(q)) : active;
+  const max = active[0] ? active[0].shots : 1;
+  const el = document.getElementById('lbList');
+  if (!filtered.length) {
+    el.innerHTML = active.length
+      ? '<div class="lb-empty">No matching players.</div>'
+      : '<div class="lb-empty">No shots logged yet. Check back once players start submitting!</div>';
+    return;
+  }
+  el.innerHTML = filtered.map(p => {
+    const rank = active.indexOf(p) + 1;
+    const barPct = max ? Math.round((p.shots / max) * 100) : 0;
+    return `<div class="lb-row">
+      <div class="lb-rank ${rank<=3?'top3':''}">${rank}</div>
+      <div class="lb-name-wrap">
+        <div class="lb-name">${esc(p.name)}</div>
+        ${p.division ? `<div class="lb-team">${esc(p.division)}</div>` : ''}
+      </div>
+      <div class="lb-shots">${p.shots.toLocaleString()}</div>
+      <div class="lb-bar-wrap"><div class="lb-bar" style="width:${barPct}%"></div></div>
+    </div>`;
+  }).join('');
+}
+
+function renderRoster() {
+  if (!adminAuthed) return;
+  const el = document.getElementById('rosterList');
+  if (!roster.length) { el.innerHTML = '<div class="empty-note">No players yet — add one above.</div>'; return; }
+  const sorted = [...roster].sort((a,b) => a.division.localeCompare(b.division) || a.name.localeCompare(b.name));
+  el.innerHTML = sorted.map(p => {
+    const idx = roster.indexOf(p);
+    return `<div class="admin-row">
+      <div class="admin-info">
+        ${esc(p.name)}<span class="div-badge">${esc(p.division)}</span>
+        <span class="pin-badge ${p.pinHash ? 'set' : ''}">${p.pinHash ? 'PIN set' : 'No PIN yet'}</span>
+      </div>
+      <div class="admin-actions">
+        ${p.pinHash ? `<button class="reset-btn" onclick="resetPin(${idx})">Reset PIN</button>` : ''}
+        <button class="del-btn" onclick="removePlayer(${idx})">Remove</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderAdmin() {
+  if (!adminAuthed) return;
+  const el = document.getElementById('adminList');
+  if (!entries.length) { el.innerHTML = '<div class="empty-note">No submissions yet.</div>'; return; }
+  el.innerHTML = [...entries].reverse().map((e, ri) => {
+    const i = entries.length - 1 - ri;
+    const d = new Date(e.ts).toLocaleDateString();
+    return `<div class="admin-row">
+      <div class="admin-info">
+        ${esc(e.name)}<span class="div-badge">${esc(e.division||'')}</span>
+        <small>${d}</small>
+      </div>
+      <div class="admin-actions">
+        <div class="edit-shots-wrap">
+          <input class="edit-shots-input" type="number" value="${e.shots}" min="1" max="99999" id="shots-${i}"/>
+          <button class="save-btn" onclick="saveShots(${i})">Save</button>
+        </div>
+        <button class="del-btn" onclick="deleteEntry(${i})">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function updateAll() {
+  const total = getTotal();
+  const totals = getTotals();
+  updateTotalDisplay(total);
+  updateStats(total, totals);
+  renderTop10(totals);
+  renderLeaderboard();
+  renderRoster();
+  renderAdmin();
+}
+
+function showToast(msg, isErr) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.toggle('err', !!isErr);
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 3500);
+}
+
+async function submitShots() {
+  const name = document.getElementById('playerSelect').value;
+  const division = document.getElementById('divisionDisplay').value;
+  const pin = document.getElementById('pinInput').value.trim();
+  const shots = parseInt(document.getElementById('shotCount').value);
+
+  let valid = true;
+  document.getElementById('nameErr').style.display = 'none';
+  document.getElementById('shotErr').style.display = 'none';
+  document.getElementById('pinErr').style.display = 'none';
+
+  if (!name) { document.getElementById('nameErr').style.display = 'block'; valid = false; }
+  if (!shots || shots < 1 || shots > 2000) { document.getElementById('shotErr').style.display = 'block'; valid = false; }
+  if (!valid) return;
+
+  const player = findPlayer(name);
+  if (!player) { showToast('Player not found — ask your admin to add you to the roster.', true); return; }
+
+  if (!/^\d{4,6}$/.test(pin)) {
+    document.getElementById('pinErr').textContent = 'Enter a 4-6 digit PIN.';
+    document.getElementById('pinErr').style.display = 'block';
+    return;
+  }
+
+  const pinHash = await sha256Hex(pin);
+
+  if (player.pinHash) {
+    if (pinHash !== player.pinHash) {
+      document.getElementById('pinErr').textContent = 'Incorrect PIN for this player.';
+      document.getElementById('pinErr').style.display = 'block';
+      return;
+    }
+  } else {
+    // First submission for this player — set their PIN now.
+    const ok = await updatePlayerDoc(player.id, { pinHash });
+    if (!ok) {
+      showToast('Could not save your PIN — please try again.', true);
+      return;
+    }
+    player.pinHash = pinHash;
+  }
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  const newEntry = { name, division, shots, ts: Date.now() };
+  const newId = await addEntryDoc(newEntry);
+  if (!newId) {
+    btn.disabled = false; btn.textContent = 'Log shots';
+    showToast('Could not save your shots — please check your connection and try again.', true);
+    return;
+  }
+  entries.push({ id: newId, ...newEntry });
+  updateAll();
+
+  document.getElementById('playerSelect').value = '';
+  document.getElementById('divisionDisplay').value = '';
+  document.getElementById('pinInput').value = '';
+  document.getElementById('pinGroup').style.display = 'none';
+  document.getElementById('shotCount').value = '';
+
+  showToast(`🏒 ${shots.toLocaleString()} shots logged for ${name}!`);
+  btn.disabled = false; btn.textContent = 'Log shots';
+}
+
+async function saveShots(i) {
+  const input = document.getElementById('shots-' + i);
+  const val = parseInt(input.value);
+  if (!val || val < 1) { input.style.borderColor = '#f87171'; return; }
+  input.style.borderColor = '';
+  const entry = entries[i];
+  const ok = await updateEntryDoc(entry.id, { shots: val });
+  if (!ok) { showToast('Could not save that change — please try again.', true); return; }
+  entry.shots = val;
+  updateAll();
+}
+
+async function deleteEntry(i) {
+  if (!await confirmDialog('Delete this submission?')) return;
+  const entry = entries[i];
+  const ok = await deleteEntryDoc(entry.id);
+  if (!ok) { showToast('Could not delete that submission — please try again.', true); return; }
+  entries.splice(i, 1);
+  updateAll();
+}
+
+async function addPlayer() {
+  const nameInput = document.getElementById('newPlayerName');
+  const divInput = document.getElementById('newPlayerDivision');
+  const name = nameInput.value.trim();
+  const division = divInput.value.trim();
+  if (!name || !division) { showToast('Enter both a name and division.', true); return; }
+  if (findPlayer(name)) { showToast('A player with that name already exists.', true); return; }
+  const id = await addPlayerDoc(name, division);
+  if (!id) { showToast('Could not add that player — please try again.', true); return; }
+  roster.push({ id, name, division, pinHash: null });
+  buildDropdown();
+  updateAll();
+  nameInput.value = '';
+  divInput.value = '';
+  showToast(`Added ${name} to the roster.`);
+}
+
+// Minimal CSV line parser — handles quoted fields with embedded commas,
+// e.g.  "Smith, John",10U   →  ['Smith, John', '10U']
+function parseCsvLine(line) {
+  const fields = [];
+  let cur = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (line[i + 1] === '"') { cur += '"'; i++; }
+        else inQuotes = false;
+      } else {
+        cur += ch;
+      }
+    } else {
+      if (ch === '"') inQuotes = true;
+      else if (ch === ',') { fields.push(cur); cur = ''; }
+      else cur += ch;
+    }
+  }
+  fields.push(cur);
+  return fields.map(f => f.trim());
+}
+
+function parseRosterCsv(text) {
+  const lines = text.split(/\r\n|\n|\r/).map(l => l.trim()).filter(l => l.length);
+  const rows = lines.map(parseCsvLine);
+  if (!rows.length) return [];
+
+  // Drop an optional header row like "name,division".
+  const first = rows[0].map(f => f.toLowerCase());
+  if (first[0] === 'name' && (first[1] === 'division' || first.length === 1)) {
+    rows.shift();
+  }
+
+  return rows
+    .map(r => ({ name: (r[0] || '').trim(), division: (r[1] || '').trim() }))
+    .filter(r => r.name.length);
+}
+
+async function handleCsvUpload() {
+  const input = document.getElementById('csvFileInput');
+  const summaryEl = document.getElementById('csvSummary');
+  const file = input.files && input.files[0];
+
+  if (!file) {
+    summaryEl.textContent = 'Choose a CSV file first.';
+    summaryEl.style.color = '#b3261e';
+    return;
+  }
+
+  let text;
+  try {
+    text = await file.text();
+  } catch (e) {
+    summaryEl.textContent = 'Could not read that file.';
+    summaryEl.style.color = '#b3261e';
+    return;
+  }
+
+  const rows = parseRosterCsv(text);
+  if (!rows.length) {
+    summaryEl.textContent = 'No rows found in that file.';
+    summaryEl.style.color = '#b3261e';
+    return;
+  }
+
+  let added = 0;
+  const skippedDuplicate = [];
+  const skippedMissingDivision = [];
+  const skippedSaveFailed = [];
+  const seenInFile = new Set();
+
+  for (const row of rows) {
+    const name = row.name;
+    const division = row.division;
+
+    if (!division) {
+      skippedMissingDivision.push(name);
+      continue;
+    }
+    if (findPlayer(name) || seenInFile.has(name.toLowerCase())) {
+      skippedDuplicate.push(name);
+      continue;
+    }
+    seenInFile.add(name.toLowerCase());
+
+    const id = await addPlayerDoc(name, division);
+    if (!id) {
+      skippedSaveFailed.push(name);
+      continue;
+    }
+    roster.push({ id, name, division, pinHash: null });
+    added++;
+  }
+
+  if (added > 0) {
+    buildDropdown();
+    updateAll();
+  }
+
+  const parts = [`${added} player${added === 1 ? '' : 's'} added.`];
+  if (skippedDuplicate.length) parts.push(`${skippedDuplicate.length} skipped (already on roster): ${skippedDuplicate.join(', ')}.`);
+  if (skippedMissingDivision.length) parts.push(`${skippedMissingDivision.length} skipped (missing division): ${skippedMissingDivision.join(', ')}.`);
+  if (skippedSaveFailed.length) parts.push(`${skippedSaveFailed.length} failed to save (try again): ${skippedSaveFailed.join(', ')}.`);
+
+  summaryEl.innerHTML = parts.map(esc).join('<br>');
+  summaryEl.style.color = added > 0 ? '#1f7a3a' : '#5a6478';
+  input.value = '';
+
+  if (added > 0) showToast(`Added ${added} player${added === 1 ? '' : 's'} from CSV.`);
+}
+
+async function removePlayer(idx) {
+  const player = roster[idx];
+  if (!player) return;
+  if (!await confirmDialog(`Remove ${player.name} from the roster? Their existing shot entries will stay on the leaderboard.`)) return;
+  const ok = await deletePlayerDoc(player.id);
+  if (!ok) { showToast('Could not remove that player — please try again.', true); return; }
+  roster.splice(idx, 1);
+  buildDropdown();
+  updateAll();
+}
+
+async function resetPin(idx) {
+  const player = roster[idx];
+  if (!player) return;
+  if (!await confirmDialog(`Reset the PIN for ${player.name}? They'll set a new one next time they submit.`)) return;
+  const ok = await updatePlayerDoc(player.id, { pinHash: null });
+  if (!ok) { showToast('Could not reset that PIN — please try again.', true); return; }
+  player.pinHash = null;
+  updateAll();
+}
+
+async function sha256Hex(text) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function adminLogin() {
+  const btn = document.querySelector('#adminLock .submit-btn');
+  const email = document.getElementById('adminEmail').value.trim();
+  const password = document.getElementById('adminPw').value;
+  const errEl = document.getElementById('adminErr');
+  errEl.textContent = '';
+
+  if (!email || !password) {
+    errEl.textContent = 'Enter both email and password.';
+    return;
+  }
+
+  await waitForFirebase();
+  const { auth, signInWithEmailAndPassword } = window.fb;
+
+  btn.disabled = true;
+  btn.textContent = 'Signing in…';
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+    // onAuthStateChanged (set up at startup) handles showing the admin panel.
+    document.getElementById('adminPw').value = '';
+  } catch (e) {
+    console.error('Admin sign-in failed', e);
+    errEl.textContent = 'Incorrect email or password.';
+  }
+  btn.disabled = false;
+  btn.textContent = 'Sign in';
+}
+
+async function adminLogout() {
+  await waitForFirebase();
+  const { auth, signOut } = window.fb;
+  try { await signOut(auth); } catch (e) { console.error('Sign-out failed', e); }
+  // onAuthStateChanged handles hiding the admin panel.
+}
+
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('panel-' + id).classList.add('active');
+  if (id === 'leaderboard') renderLeaderboard();
+  if (id === 'admin' && adminAuthed) { renderRoster(); renderAdmin(); }
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// In-page confirm dialog. Some embedded/sandboxed iframe contexts (including
+// some site builders' Code Page Element embeds) block or silently no-op the
+// native window.confirm(), which would make destructive actions look like
+// they "do nothing." This renders our own modal instead, so it works
+// identically whether the page is viewed directly or embedded.
+function confirmDialog(message) {
+  return new Promise(resolve => {
+    const overlay = document.getElementById('confirmOverlay');
+    document.getElementById('confirmMsg').textContent = message;
+    overlay.classList.add('show');
+
+    const okBtn = document.getElementById('confirmOkBtn');
+    const cancelBtn = document.getElementById('confirmCancelBtn');
+
+    function cleanup(result) {
+      overlay.classList.remove('show');
+      okBtn.removeEventListener('click', onOk);
+      cancelBtn.removeEventListener('click', onCancel);
+      overlay.removeEventListener('click', onOverlayClick);
+      resolve(result);
+    }
+    function onOk() { cleanup(true); }
+    function onCancel() { cleanup(false); }
+    function onOverlayClick(e) { if (e.target === overlay) cleanup(false); }
+
+    okBtn.addEventListener('click', onOk);
+    cancelBtn.addEventListener('click', onCancel);
+    overlay.addEventListener('click', onOverlayClick);
+  });
+}
+
+async function setupAuthListener() {
+  await waitForFirebase();
+  const { auth, onAuthStateChanged } = window.fb;
+  onAuthStateChanged(auth, (user) => {
+    adminAuthed = !!user;
+    document.getElementById('adminLock').style.display = user ? 'none' : 'block';
+    document.getElementById('adminPanel').style.display = user ? 'block' : 'none';
+    if (user) { renderRoster(); renderAdmin(); }
+  });
+}
+
+setupAuthListener();
+
+loadData().catch(e => {
+  console.error('loadData failed entirely.', e);
+  roster = [];
+  entries = [];
+  buildDropdown();
+  updateAll();
+  showToast('Could not connect to the database — please refresh the page.', true);
+});
+</script>
+</body>
+</html>
