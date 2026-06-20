@@ -192,11 +192,11 @@
     <div class="admin-lock">Sign in with your admin account to manage players and entries.</div>
     <div class="form-group" style="margin-top:1rem;">
       <label for="adminEmail">Email</label>
-      <input type="text" id="adminEmail" placeholder="admin@example.com" autocomplete="username" onkeydown="if(event.key==='Enter')adminLogin()"/>
+      <input type="text" id="adminEmail" placeholder="admin@example.com" onkeydown="if(event.key==='Enter')adminLogin()"/>
     </div>
     <div class="form-group">
       <label for="adminPw">Password</label>
-      <input type="password" id="adminPw" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')adminLogin()"/>
+      <input type="password" id="adminPw" placeholder="••••••••" onkeydown="if(event.key==='Enter')adminLogin()"/>
     </div>
     <button class="submit-btn" onclick="adminLogin()">Sign in</button>
     <div class="error-msg" id="adminErr" style="display:block;text-align:center;margin-top:0.5rem;"></div>
@@ -249,7 +249,7 @@
   } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 
   const firebaseConfig = {
-    apiKey: "AIzaSyBfnD0SPnYFFjOcOefc13aEzIv6AsheDuo",
+    apiKey: "AIzaSyBfnD0SPnYFFjOcOefc13aEzIv6AsheDuo", // Intended exposure - configured based on Firebase documentation. Security is in the rules.
     authDomain: "summer-shot-challenge-2026.firebaseapp.com",
     projectId: "summer-shot-challenge-2026",
     storageBucket: "summer-shot-challenge-2026.firebasestorage.app",
@@ -261,9 +261,6 @@
   const db = getFirestore(app);
   const auth = getAuth(app);
 
-  // Expose what the main (non-module) script needs via a global namespace,
-  // since <script type="module"> has its own scope and the rest of the app
-  // is a plain classic script for simplicity.
   window.fb = {
     db, auth,
     collection, doc, getDocs, getDoc, setDoc, addDoc, updateDoc, deleteDoc, query,
@@ -274,11 +271,6 @@
 </script>
 
 <script>
-// Player PINs are stored as SHA-256 hashes in Firestore (field: pinHash),
-// never as plaintext, so the database itself never holds a readable PIN.
-// Admin access is handled by real Firebase Authentication (see adminLogin
-// below) rather than a password baked into this file.
-
 let entries = [];      // [{ id, name, division, shots, ts }]
 let roster = [];        // [{ id, name, division, pinHash }]
 let adminAuthed = false;
@@ -318,7 +310,6 @@ async function loadData() {
   updateAll();
 }
 
-// Add a brand-new player document. Returns the new Firestore doc id, or null on failure.
 async function addPlayerDoc(name, division) {
   const { db, collection, addDoc } = window.fb;
   try {
@@ -330,7 +321,6 @@ async function addPlayerDoc(name, division) {
   }
 }
 
-// Update an existing player doc (used for setting pinHash, or admin edits).
 async function updatePlayerDoc(id, fields) {
   const { db, doc, updateDoc } = window.fb;
   try {
@@ -353,7 +343,6 @@ async function deletePlayerDoc(id) {
   }
 }
 
-// Add a new shot entry. Returns the new doc id, or null on failure.
 async function addEntryDoc(entry) {
   const { db, collection, addDoc } = window.fb;
   try {
@@ -524,8 +513,6 @@ function renderRoster() {
   }).join('');
 }
 
-// Tracks which player groups are expanded in the admin "All submissions"
-// view, so re-rendering after an edit/delete doesn't collapse everything.
 const expandedGroups = new Set();
 
 function toggleGroup(name) {
@@ -539,9 +526,6 @@ function renderAdmin() {
   const el = document.getElementById('adminList');
   if (!entries.length) { el.innerHTML = '<div class="empty-note">No submissions yet.</div>'; return; }
 
-  // Group entries by player name, keeping each entry's original index in
-  // the `entries` array so saveShots/deleteEntry (which take that index)
-  // still work unchanged.
   const groups = {};
   entries.forEach((e, i) => {
     if (!groups[e.name]) groups[e.name] = { name: e.name, division: e.division || '', total: 0, items: [] };
@@ -581,8 +565,6 @@ function renderAdmin() {
     </div>`;
   }).join('');
 
-  // Event delegation for group headers — avoids fragile inline-onclick
-  // string interpolation of player names that might contain quotes.
   el.querySelectorAll('.group-header').forEach(header => {
     header.addEventListener('click', () => toggleGroup(header.dataset.toggleName));
   });
@@ -640,7 +622,6 @@ async function submitShots() {
       return;
     }
   } else {
-    // First submission for this player — set their PIN now.
     const ok = await updatePlayerDoc(player.id, { pinHash });
     if (!ok) {
       showToast('Could not save your PIN — please try again.', true);
@@ -709,8 +690,6 @@ async function addPlayer() {
   showToast(`Added ${name} to the roster.`);
 }
 
-// Minimal CSV line parser — handles quoted fields with embedded commas,
-// e.g.  "Smith, John",10U   →  ['Smith, John', '10U']
 function parseCsvLine(line) {
   const fields = [];
   let cur = '';
@@ -882,7 +861,6 @@ async function adminLogout() {
   await waitForFirebase();
   const { auth, signOut } = window.fb;
   try { await signOut(auth); } catch (e) { console.error('Sign-out failed', e); }
-  // onAuthStateChanged handles hiding the admin panel.
 }
 
 function switchTab(id, btn) {
@@ -898,11 +876,6 @@ function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// In-page confirm dialog. Some embedded/sandboxed iframe contexts (including
-// some site builders' Code Page Element embeds) block or silently no-op the
-// native window.confirm(), which would make destructive actions look like
-// they "do nothing." This renders our own modal instead, so it works
-// identically whether the page is viewed directly or embedded.
 function confirmDialog(message) {
   return new Promise(resolve => {
     const overlay = document.getElementById('confirmOverlay');
