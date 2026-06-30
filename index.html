@@ -207,6 +207,7 @@
       <div class="add-player-form">
         <input type="text" id="newPlayerName" placeholder="Player name"/>
         <input type="text" id="newPlayerDivision" placeholder="Division (e.g. 10U)"/>
+        <input type="tel" id="newPlayerPin" placeholder="Default PIN (MMDDYY)" maxlength="6" inputmode="numeric"/>
         <button class="submit-btn" onclick="addPlayer()">Add</button>
       </div>
       <div id="rosterList"></div>
@@ -214,8 +215,8 @@
     <div class="admin-section">
       <h3>Upload CSV</h3>
       <p class="hint" style="margin-top:0;margin-bottom:0.75rem;">
-        Bulk-add players to the roster. File needs two columns: <strong>name</strong> and <strong>division</strong>
-        (header row optional, e.g. <code>name,division</code>). Existing names are skipped.
+        Bulk-add players to the roster. File needs three columns: <strong>name</strong>, <strong>division</strong>, and <strong>pin</strong>
+        (header row optional, e.g. <code>name,division,pin</code>). The pin should be the player's date of birth in MMDDYY format (e.g. <code>010121</code> for Jan 1, 2021). Existing names are skipped.
       </p>
       <input type="file" id="csvFileInput" accept=".csv,text/csv"/>
       <button class="submit-btn" onclick="handleCsvUpload()" style="margin-top:0.6rem;">Upload roster CSV</button>
@@ -310,10 +311,10 @@ async function loadData() {
   updateAll();
 }
 
-async function addPlayerDoc(name, division) {
+async function addPlayerDoc(name, division, pinHash = null) {
   const { db, collection, addDoc } = window.fb;
   try {
-    const ref = await addDoc(collection(db, 'players'), { name, division, pinHash: null });
+    const ref = await addDoc(collection(db, 'players'), { name, division, pinHash });
     return ref.id;
   } catch(e) {
     console.error('addPlayerDoc failed', e);
@@ -421,8 +422,8 @@ function onPlayerSelect() {
     pinLabel.textContent = 'PIN';
     pinHint.textContent = 'Enter your PIN to confirm this is you.';
   } else {
-    pinLabel.textContent = 'Create a PIN';
-    pinHint.textContent = 'First time logging shots — pick a 4-digit PIN. You\'ll use this same PIN every time.';
+    pinLabel.textContent = 'PIN';
+    pinHint.textContent = 'Enter your date of birth as your PIN in MMDDYY format (e.g. Jan 1, 2021 → 010121). This becomes your PIN for all future submissions.';
   }
 }
 
@@ -676,17 +677,24 @@ async function deleteEntry(i) {
 async function addPlayer() {
   const nameInput = document.getElementById('newPlayerName');
   const divInput = document.getElementById('newPlayerDivision');
+  const pinInput = document.getElementById('newPlayerPin');
   const name = nameInput.value.trim();
   const division = divInput.value.trim();
+  const rawPin = pinInput.value.trim();
+
   if (!name || !division) { showToast('Enter both a name and division.', true); return; }
   if (findPlayer(name)) { showToast('A player with that name already exists.', true); return; }
-  const id = await addPlayerDoc(name, division);
+  if (rawPin && !/^\d{4,6}$/.test(rawPin)) { showToast('Default PIN must be 4–6 digits (e.g. 010121).', true); return; }
+
+  const pinHash = rawPin ? await sha256Hex(rawPin) : null;
+  const id = await addPlayerDoc(name, division, pinHash);
   if (!id) { showToast('Could not add that player — please try again.', true); return; }
-  roster.push({ id, name, division, pinHash: null });
+  roster.push({ id, name, division, pinHash });
   buildDropdown();
   updateAll();
   nameInput.value = '';
   divInput.value = '';
+  pinInput.value = '';
   showToast(`Added ${name} to the roster.`);
 }
 
@@ -718,14 +726,14 @@ function parseRosterCsv(text) {
   const rows = lines.map(parseCsvLine);
   if (!rows.length) return [];
 
-  // Drop an optional header row like "name,division".
+  // Drop an optional header row like "name,division,pin" or "name,division".
   const first = rows[0].map(f => f.toLowerCase());
   if (first[0] === 'name' && (first[1] === 'division' || first.length === 1)) {
     rows.shift();
   }
 
   return rows
-    .map(r => ({ name: (r[0] || '').trim(), division: (r[1] || '').trim() }))
+    .map(r => ({ name: (r[0] || '').trim(), division: (r[1] || '').trim(), pin: (r[2] || '').trim() }))
     .filter(r => r.name.length);
 }
 
@@ -759,12 +767,14 @@ async function handleCsvUpload() {
   let added = 0;
   const skippedDuplicate = [];
   const skippedMissingDivision = [];
+  const skippedInvalidPin = [];
   const skippedSaveFailed = [];
   const seenInFile = new Set();
 
   for (const row of rows) {
     const name = row.name;
     const division = row.division;
+    const rawPin = row.pin;
 
     if (!division) {
       skippedMissingDivision.push(name);
@@ -774,14 +784,21 @@ async function handleCsvUpload() {
       skippedDuplicate.push(name);
       continue;
     }
+    if (rawPin && !/^\d{4,6}$/.test(rawPin)) {
+      skippedInvalidPin.push(name);
+      continue;
+    }
+
     seenInFile.add(name.toLowerCase());
 
-    const id = await addPlayerDoc(name, division);
+    // Hash the default PIN if one was provided, otherwise null (player sets on first submit).
+    const pinHash = rawPin ? await sha256Hex(rawPin) : null;
+    const id = await addPlayerDoc(name, division, pinHash);
     if (!id) {
       skippedSaveFailed.push(name);
       continue;
     }
-    roster.push({ id, name, division, pinHash: null });
+    roster.push({ id, name, division, pinHash });
     added++;
   }
 
@@ -793,6 +810,7 @@ async function handleCsvUpload() {
   const parts = [`${added} player${added === 1 ? '' : 's'} added.`];
   if (skippedDuplicate.length) parts.push(`${skippedDuplicate.length} skipped (already on roster): ${skippedDuplicate.join(', ')}.`);
   if (skippedMissingDivision.length) parts.push(`${skippedMissingDivision.length} skipped (missing division): ${skippedMissingDivision.join(', ')}.`);
+  if (skippedInvalidPin.length) parts.push(`${skippedInvalidPin.length} skipped (invalid PIN — must be 4–6 digits): ${skippedInvalidPin.join(', ')}.`);
   if (skippedSaveFailed.length) parts.push(`${skippedSaveFailed.length} failed to save (try again): ${skippedSaveFailed.join(', ')}.`);
 
   summaryEl.innerHTML = parts.map(esc).join('<br>');
