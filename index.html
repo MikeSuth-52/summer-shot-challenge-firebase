@@ -206,8 +206,8 @@
       <h3>Roster</h3>
       <div class="add-player-form">
         <input type="text" id="newPlayerName" placeholder="Player name"/>
-        <input type="text" id="newPlayerDivision" placeholder="Division (e.g. 10U)"/>
-        <input type="tel" id="newPlayerPin" placeholder="Default PIN (MMDDYY)" maxlength="6" inputmode="numeric"/>
+        <input type="text" id="newPlayerDivision" placeholder="Division"/>
+        <input type="tel" id="newPlayerPin" placeholder="Default PIN" maxlength="6" inputmode="numeric"/>
         <button class="submit-btn" onclick="addPlayer()">Add</button>
       </div>
       <div id="rosterList"></div>
@@ -216,7 +216,7 @@
       <h3>Upload CSV</h3>
       <p class="hint" style="margin-top:0;margin-bottom:0.75rem;">
         Bulk-add players to the roster. File needs three columns: <strong>name</strong>, <strong>division</strong>, and <strong>pin</strong>
-        (header row optional, e.g. <code>name,division,pin</code>). The pin should be the player's date of birth in MMDDYY format (e.g. <code>010121</code> for Jan 1, 2021). Existing names are skipped.
+        (header row optional, e.g. <code>name,division,pin</code>). Existing names are skipped.
       </p>
       <input type="file" id="csvFileInput" accept=".csv,text/csv"/>
       <button class="submit-btn" onclick="handleCsvUpload()" style="margin-top:0.6rem;">Upload roster CSV</button>
@@ -603,7 +603,7 @@ async function submitShots() {
   if (!player) { showToast('Player not found — ask your admin to add you to the roster.', true); return; }
 
   if (!/^\d{6}$/.test(pin)) {
-    document.getElementById('pinErr').textContent = 'Enter your 6-digit PIN (MMDDYY).';
+    document.getElementById('pinErr').textContent = 'Enter your 6-digit PIN.';
     document.getElementById('pinErr').style.display = 'block';
     return;
   }
@@ -676,7 +676,7 @@ async function addPlayer() {
 
   if (!name || !division) { showToast('Enter both a name and division.', true); return; }
   if (findPlayer(name)) { showToast('A player with that name already exists.', true); return; }
-  if (rawPin && !/^\d{6}$/.test(rawPin)) { showToast('Default PIN must be exactly 6 digits (MMDDYY).', true); return; }
+  if (rawPin && !/^\d{6}$/.test(rawPin)) { showToast('Default PIN must be 4-6 digits.', true); return; }
 
   const id = await addPlayerDoc(name, division);
   if (!id) { showToast('Could not add that player — please try again.', true); return; }
