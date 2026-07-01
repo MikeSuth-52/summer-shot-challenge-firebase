@@ -420,10 +420,8 @@ function onPlayerSelect() {
   pinGroup.style.display = 'block';
   if (player.pinHash) {
     pinLabel.textContent = 'PIN';
-    pinHint.textContent = 'Enter the player date of birth as a PIN for confirmation. Format is MMDDYY.';
   } else {
     pinLabel.textContent = 'PIN';
-    pinHint.textContent = 'Enter the player date of birth as the PIN in MMDDYY format (e.g. Jan 1, 2021 → 010121). This becomes the PIN for all future submissions.';
   }
 }
 
@@ -684,7 +682,7 @@ async function addPlayer() {
 
   if (!name || !division) { showToast('Enter both a name and division.', true); return; }
   if (findPlayer(name)) { showToast('A player with that name already exists.', true); return; }
-  if (rawPin && !/^\d{4,6}$/.test(rawPin)) { showToast('Default PIN must be 4–6 digits (e.g. 010121).', true); return; }
+  if (rawPin && !/^\d{4,6}$/.test(rawPin)) { showToast('Default PIN must be 4–6 digits.', true); return; }
 
   const pinHash = rawPin ? await sha256Hex(rawPin) : null;
   const id = await addPlayerDoc(name, division, pinHash);
